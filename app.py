@@ -42,5 +42,9 @@ def logout():
     logout_user()
     return jsonify({'message': 'Logout realizado'})
 
+@app.route("/user", methods=["POST"])
+def create_user():
+    
+
 if __name__ == '__main__':
     app.run(debug=True)
