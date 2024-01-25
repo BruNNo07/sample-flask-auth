@@ -44,7 +44,18 @@ def logout():
 
 @app.route("/user", methods=["POST"])
 def create_user():
-    
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
+
+    if username and password:
+        user = User(username=username,password=password)
+        db.session.add(user)
+        db.session.commit()
+        return jsonify({'message': 'Cadastro realizado.'})
+
+    return jsonify({'message': 'Dados inválidas'}), 401
+
 
 if __name__ == '__main__':
     app.run(debug=True)
