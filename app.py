@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from loginManager import login_manager
 from flask_login import login_user, current_user, logout_user,login_required
+import bcrypt
 
 from models.user import User
 
@@ -28,7 +29,7 @@ def login():
     if username and password:
         user = User.query.filter_by(username=username).first()
 
-        if user and user.password == password:
+        if user and bcrypt.checkpw(str.encode(password), str.encode(user.password)):
             login_user(user)
             print(current_user.is_authenticated)
             return jsonify({'message': 'Usuario autenticado'})
@@ -49,7 +50,8 @@ def create_user():
     password = data.get('password')
 
     if username and password:
-        user = User(username=username,password=password)
+        password_hashed = bcrypt.hashpw(str.encode(password), bcrypt.gensalt())
+        user = User(username=username,password=password_hashed, role='user')
         db.session.add(user)
         db.session.commit()
         return jsonify({'message': 'Cadastro realizado.'})
@@ -66,9 +68,13 @@ def get_user(id):
     return jsonify({'message': 'Usuário não encontrado.'}), 404
 
 @app.route("/user/<int:id>",methods={"PUT"})
+@login_required
 def update_user(id):
     user = User.query.get(id)
     data = request.json
+
+    if id != current_user.id and current_user.role == 'user':
+        return jsonify({'message': 'Operação não permitida'}), 403
 
     if user:
         user.password = data.get('password')
@@ -82,6 +88,9 @@ def update_user(id):
 @login_required
 def delete_user(id):
   user = User.query.get(id)
+
+  if current_user.role != 'admin':
+    return jsonify({"message": "Operação não permitida"}), 403
 
   if id == current_user.id:
     return jsonify({"message": "Deleção não permitida"}), 403
